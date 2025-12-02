@@ -1,0 +1,15 @@
+{
+    "prompt": "The Global Energy Transition: A Heart-Wrenching Race Against Time Amid Carbon Politics Key Takeaways: Global Progress with Setbacks: Renewable energy , crisp and clear, sharp focus, high quality, studio lighting, professional photography, realistic, medium shot",
+    "timestamp": "20251201_235418",
+    "parameters": {
+        "steps": 100,
+        "cfg_scale": 15.0,
+        "height": 1024,
+        "width": 1024,
+        "concept": "The Global Energy Transition: A Heart-Wrenching Race Against Time Amid Carbon Politics Key Takeaways: Global Progress with Setbacks: Renewable energy ",
+        "style": "photorealistic"
+    },
+    "image_path": "generated_images\\20251201_235418_article1.png",
+    "model_id": "runwayml/stable-diffusion-v1-5",
+    "article_source": "article1"
+}
