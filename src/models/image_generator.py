@@ -69,6 +69,9 @@ class ImageGenerator:
         if negative_prompt is None:
             negative_prompt = GENERATION_CONFIG["negative_prompt_default"]
         
+        safety_negative = "nsfw, nude, naked, sexual, explicit, adult content, inappropriate, vulgar, offensive, violence, gore, disturbing"
+        negative_prompt = f"{negative_prompt}, {safety_negative}"
+        
         generator = None
         if seed is not None:
             generator = torch.Generator(device=self.device).manual_seed(seed)

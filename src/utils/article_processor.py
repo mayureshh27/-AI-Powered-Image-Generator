@@ -1,109 +1,84 @@
 import os
-from docx import Document
 from typing import List, Dict
-import re
+from docx import Document
+from groq import Groq
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class ArticleProcessor:
     
     def __init__(self, articles_dir: str = "Articles"):
         self.articles_dir = articles_dir
-        
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise ValueError("GROQ_API_KEY not found in environment variables. Please set it in .env file")
+        self.client = Groq(api_key=api_key)
+
     def read_docx(self, filepath: str) -> str:
         try:
             doc = Document(filepath)
-            full_text = []
-            
-            for paragraph in doc.paragraphs:
-                if paragraph.text.strip():
-                    full_text.append(paragraph.text.strip())
-            
-            return "\n".join(full_text)
+            return "\n".join([p.text.strip() for p in doc.paragraphs if p.text.strip()])
         except Exception as e:
             print(f"Error reading {filepath}: {e}")
             return ""
-    
-    def clean_text(self, text: str) -> str:
-        text = re.sub(r'\s+', ' ', text)
-        text = re.sub(r'[^\w\s.,!?;:\-()]', '', text)
-        return text.strip()
-    
-    def extract_key_sentences(self, text: str, num_sentences: int = 5) -> List[str]:
-        sentences = re.split(r'[.!?]+', text)
-        sentences = [s.strip() for s in sentences if len(s.strip()) > 50]
-        
-        descriptive_words = ['describe', 'show', 'depict', 'illustrate', 'feature', 
-                            'image', 'picture', 'scene', 'view', 'landscape']
-        
-        scored_sentences = []
-        for i, sent in enumerate(sentences):
-            score = 0
-            if i < 3:
-                score += 2
-            if any(word in sent.lower() for word in descriptive_words):
-                score += 3
-            if len(sent) > 100:
-                score += 1
-            
-            scored_sentences.append((score, sent))
-        
-        scored_sentences.sort(reverse=True, key=lambda x: x[0])
-        return [sent for _, sent in scored_sentences[:num_sentences]]
-    
-    def extract_concepts(self, text: str, max_concepts: int = 3) -> List[str]:
-        key_sentences = self.extract_key_sentences(text, num_sentences=max_concepts)
-        
-        concepts = []
-        for sentence in key_sentences:
-            concept = sentence[:150] if len(sentence) > 150 else sentence
-            concepts.append(concept)
-        
-        return concepts
-    
-    def get_all_articles(self) -> List[str]:
-        if not os.path.exists(self.articles_dir):
-            print(f"Articles directory '{self.articles_dir}' not found")
-            return []
-        
-        articles = []
-        for filename in os.listdir(self.articles_dir):
-            if filename.endswith('.docx') and not filename.startswith('~'):
-                articles.append(os.path.join(self.articles_dir, filename))
-        
-        return sorted(articles)
-    
+
     def process_article(self, filepath: str, max_concepts: int = 3) -> Dict:
-        filename = os.path.basename(filepath)
         text = self.read_docx(filepath)
+        filename = os.path.basename(filepath)
         
         if not text:
+            return {"error": "Empty or unreadable file"}
+
+        prompt = f"""You are an expert visual content creator for professional journalism. Your task is to generate {max_concepts} distinct, safe, and contextually accurate image prompts based ONLY on the content of this article.
+
+ARTICLE TEXT:
+{text[:15000]}
+
+STRICT REQUIREMENTS:
+1. CONTEXT ONLY: Each prompt must describe a REAL scene, concept, or visual element that is EXPLICITLY mentioned or directly implied in the article text above.
+2. SAFE CONTENT: Generate only professional, workplace-appropriate imagery. Avoid any sensitive, controversial, or inappropriate content.
+3. PHOTOREALISTIC STYLE: Describe scenes as if they were professional photographs or documentary shots.
+4. TECHNICAL DETAILS: Include specific details about:
+   - Lighting (e.g., "natural daylight", "soft studio lighting", "golden hour")
+   - Camera perspective (e.g., "wide angle shot", "close-up", "aerial view")
+   - Composition (e.g., "centered composition", "rule of thirds")
+   - Mood/atmosphere that matches the article tone
+
+5. FORMAT: Output ONLY the prompts separated by a pipe symbol (|). Do NOT include any introductory text, explanations, or numbering.
+
+EXAMPLE OUTPUT FORMAT:
+A modern office workspace with employees collaborating on laptops, natural daylight from large windows, wide angle shot, professional photography | A close-up of renewable energy solar panels on a rooftop, golden hour lighting, shallow depth of field, documentary style | An aerial view of a sustainable urban development with green spaces, soft morning light, architectural photography
+
+YOUR OUTPUT (prompts only, separated by |):"""
+
+        try:
+            completion = self.client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model="llama-3.3-70b-versatile",
+                temperature=0.7,
+                max_tokens=500
+            )
+            
+            content = completion.choices[0].message.content.strip()
+            concepts = [c.strip() for c in content.split('|') if c.strip()]
+            
+            if not concepts:
+                return {"error": "No valid prompts generated", "concepts": []}
+            
             return {
                 "filename": filename,
-                "filepath": filepath,
-                "text": "",
-                "concepts": [],
-                "error": "Failed to read article"
+                "concepts": concepts[:max_concepts],
+                "num_concepts": len(concepts[:max_concepts]),
+                "text": text[:200]
             }
-        
-        cleaned_text = self.clean_text(text)
-        concepts = self.extract_concepts(cleaned_text, max_concepts)
-        
-        return {
-            "filename": filename,
-            "filepath": filepath,
-            "text": cleaned_text[:500],
-            "full_text": cleaned_text,
-            "concepts": concepts,
-            "num_concepts": len(concepts)
-        }
-    
-    def process_all_articles(self, max_concepts: int = 3) -> List[Dict]:
-        articles = self.get_all_articles()
-        processed = []
-        
-        for article_path in articles:
-            result = self.process_article(article_path, max_concepts)
-            processed.append(result)
-            print(f"Processed: {result['filename']} - Found {result['num_concepts']} concepts")
-        
-        return processed
+
+        except Exception as e:
+            print(f"LLM Error: {e}")
+            return {"error": str(e), "concepts": []}
+
+    def get_all_articles(self) -> List[str]:
+        if not os.path.exists(self.articles_dir):
+            return []
+        return [os.path.join(self.articles_dir, f) for f in os.listdir(self.articles_dir) if f.endswith('.docx') and not f.startswith('~')]

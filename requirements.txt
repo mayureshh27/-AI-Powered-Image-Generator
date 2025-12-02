@@ -11,3 +11,5 @@ sentencepiece==0.2.0
 protobuf==5.29.3
 safetensors==0.5.2
 huggingface-hub==0.28.1
+groq
+python-dotenv

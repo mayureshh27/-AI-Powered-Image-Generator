@@ -1,290 +1,352 @@
-"""
-Article-Based Image Generation UI
-Streamlit interface for generating images from article content
-"""
-
 import streamlit as st
 import os
 import sys
 from pathlib import Path
 
-# Add src to path
 sys.path.append(str(Path(__file__).parent))
 
 from src.models.image_generator import ImageGenerator
 from src.utils.article_processor import ArticleProcessor
-from src.utils.prompt_engineer import PromptEngineer
-from config.settings import GENERATION_CONFIG, ARTICLE_CONFIG, PATHS
+from config.settings import PATHS
 
-# Page configuration
 st.set_page_config(
-    page_title="Article-Based AI Image Generator",
+    page_title="Talrn AI Assignment - Image Generator",
     page_icon="📰",
     layout="wide"
 )
 
-# Initialize components (cached to avoid reloading)
-@st.cache_resource
-def get_generator():
-    return ImageGenerator()
+if "current_images" not in st.session_state:
+    st.session_state.current_images = []
+if "prompts" not in st.session_state:
+    st.session_state.prompts = []
+if "current_article" not in st.session_state:
+    st.session_state.current_article = None
 
 @st.cache_resource
-def get_article_processor():
-    return ArticleProcessor(PATHS["articles_dir"])
+def load_core():
+    return ImageGenerator(), ArticleProcessor(PATHS["articles_dir"])
 
-@st.cache_resource
-def get_prompt_engineer():
-    return PromptEngineer()
-
-# Load components
 try:
-    with st.spinner("🚀 Loading AI models... This may take a minute on first run."):
-        generator = get_generator()
-        article_processor = get_article_processor()
-        prompt_engineer = get_prompt_engineer()
-    st.success("✅ Models loaded successfully!")
+    generator, processor = load_core()
+    st.success("✅ AI Models loaded: Realistic Vision V6.0 + Groq Llama 3.3")
 except Exception as e:
-    st.error(f"❌ Failed to load models: {e}")
+    st.error(f"❌ System Error: {e}")
+    st.info("💡 Make sure your GROQ_API_KEY is set in the .env file")
     st.stop()
 
-# Sidebar settings
-st.sidebar.header("⚙️ Generation Settings")
+with st.sidebar:
+    st.header("⚙️ Generation Settings")
+    
+    st.subheader("🎨 Quality Presets")
+    preset = st.selectbox(
+        "Choose Preset",
+        ["Custom", "Photorealistic (Recommended)", "High Detail", "Balanced", "Fast"],
+        help="Professional presets optimized for different use cases"
+    )
+    
+    if preset == "Photorealistic (Recommended)":
+        steps = 40
+        cfg = 5.0
+        height, width = 768, 512
+    elif preset == "High Detail":
+        steps = 50
+        cfg = 6.0
+        height, width = 1024, 768
+    elif preset == "Balanced":
+        steps = 35
+        cfg = 5.5
+        height, width = 768, 512
+    elif preset == "Fast":
+        steps = 30
+        cfg = 5.0
+        height, width = 512, 512
+    else:
+        st.markdown("---")
+        st.subheader("Custom Settings")
+        
+        steps = st.slider(
+            "Inference Steps",
+            min_value=20,
+            max_value=100,
+            value=40,
+            step=5,
+            help="More steps = better quality but slower. Recommended: 40-50"
+        )
+        
+        st.markdown("**CFG Scale (Guidance)**")
+        cfg_preset = st.radio(
+            "CFG Preset",
+            ["Professional (5.0)", "Detailed (6.0)", "Artistic (7.5)", "Custom"],
+            horizontal=True,
+            help="How closely the model follows your prompt"
+        )
+        
+        if cfg_preset == "Professional (5.0)":
+            cfg = 5.0
+        elif cfg_preset == "Detailed (6.0)":
+            cfg = 6.0
+        elif cfg_preset == "Artistic (7.5)":
+            cfg = 7.5
+        else:
+            cfg = st.slider(
+                "Custom CFG",
+                min_value=1.0,
+                max_value=15.0,
+                value=5.0,
+                step=0.5,
+                help="Lower = more creative, Higher = more literal. Sweet spot: 5.0-7.0"
+            )
+        
+        st.markdown("**Resolution**")
+        res_preset = st.radio(
+            "Aspect Ratio",
+            ["Portrait (512x768)", "Square (768x768)", "Landscape (768x512)", "Custom"],
+            help="Choose aspect ratio for your images"
+        )
+        
+        if res_preset == "Portrait (512x768)":
+            width, height = 512, 768
+        elif res_preset == "Square (768x768)":
+            width, height = 768, 768
+        elif res_preset == "Landscape (768x512)":
+            width, height = 768, 512
+        else:
+            col1, col2 = st.columns(2)
+            with col1:
+                width = st.selectbox("Width", [512, 768, 1024], index=0)
+            with col2:
+                height = st.selectbox("Height", [512, 768, 1024], index=1)
+    
+    st.markdown("---")
+    st.subheader("🎲 Advanced Options")
+    
+    use_seed = st.checkbox("Use Fixed Seed", help="Enable for reproducible results")
+    seed = None
+    if use_seed:
+        seed = st.number_input("Seed", min_value=0, max_value=999999, value=42, help="Same seed = same image")
+    
+    st.markdown("---")
+    st.info(f"""
+    **Current Settings:**
+    - Steps: {steps}
+    - CFG: {cfg}
+    - Resolution: {width}x{height}
+    - Seed: {"Fixed (" + str(seed) + ")" if seed is not None else "Random"}
+    
+    **Estimated Time:** {steps // 3}-{steps // 2}s per image
+    """)
+    
+    st.markdown("---")
+    st.subheader("ℹ️ About")
+    st.caption("""
+    **Model:** Realistic Vision V6.0  
+    **LLM:** Groq Llama 3.3 (70B)  
+    **GPU:** CUDA-accelerated
+    
+    **Safety:** All content filtered for professional use.
+    """)
+    
+    if st.button("🗑️ Clear Session", width="stretch"):
+        st.session_state.current_images = []
+        st.session_state.prompts = []
+        st.session_state.current_article = None
+        st.rerun()
 
-# Image quality settings
-st.sidebar.subheader("Quality Settings")
-steps = st.sidebar.slider("Inference Steps", min_value=20, max_value=100, value=50, 
-                          help="More steps = better quality but slower")
-cfg_scale = st.sidebar.slider("Guidance Scale (CFG)", min_value=1.0, max_value=15.0, value=7.5,
-                              help="How closely to follow the prompt (7-9 recommended)")
-height = st.sidebar.select_slider("Height", options=[512, 768, 1024], value=768)
-width = st.sidebar.select_slider("Width", options=[512, 768, 1024], value=768)
-
-# Style selection
-style = st.sidebar.selectbox(
-    "Image Style",
-    ["photorealistic", "artistic", "cinematic"],
-    help="Style of generated images"
-)
-
-# Number of concepts per article
-max_concepts = st.sidebar.slider(
-    "Images per Article",
-    min_value=1,
-    max_value=5,
-    value=ARTICLE_CONFIG["max_concepts_per_article"],
-    help="Number of images to generate per article"
-)
-
-st.sidebar.markdown("---")
-st.sidebar.info("💡 **Tip**: Higher steps and resolution produce better quality but take longer to generate.")
-
-# Main interface
-st.title("📰 Article-Based AI Image Generator")
+st.title("📰 AI Article-to-Image Generator")
 st.markdown("""
-Generate high-quality, contextual images from article content using **Stable Diffusion 2.1** with GPU acceleration.
-Upload articles or process existing ones from the `Articles/` directory.
+**Talrn Internship Assignment:** Context-aware, photorealistic image generation from articles using AI.
+
+This tool analyzes article content and generates professional-quality images that accurately represent the text.
 """)
 
-# Create tabs
-tab1, tab2 = st.tabs(["📂 Process Articles", "🎨 Manual Generation"])
+col_input, col_output = st.columns([1, 2])
 
-# Tab 1: Article-based generation
-with tab1:
-    st.header("Process Articles from Directory")
-    
-    # Get available articles
-    articles = article_processor.get_all_articles()
+with col_input:
+    st.subheader("📄 Step 1: Select Article")
+    articles = processor.get_all_articles()
     
     if not articles:
-        st.warning(f"⚠️ No articles found in `{PATHS['articles_dir']}/` directory. Please add .docx files.")
-    else:
-        st.success(f"✅ Found {len(articles)} article(s)")
-        
-        # Display articles
-        for i, article_path in enumerate(articles):
-            article_name = os.path.basename(article_path)
-            with st.expander(f"📄 {article_name}", expanded=(i == 0)):
-                st.write(f"**Path**: `{article_path}`")
+        st.warning(f"⚠️ No articles found in `{PATHS['articles_dir']}/` directory")
+        st.info("💡 Add .docx files to the Articles folder and refresh the page")
+        st.stop()
+    
+    st.caption(f"Found {len(articles)} article(s) in the Articles directory")
+    
+    selected_file = st.selectbox(
+        "Choose an article:",
+        articles,
+        format_func=lambda x: os.path.basename(x),
+        help="Select the article you want to generate images from"
+    )
+    
+    article_name = os.path.basename(selected_file)
+    
+    st.markdown("---")
+    st.subheader("🧠 Step 2: Generate Visual Prompts")
+    st.caption("AI will read your article and create photorealistic scene descriptions")
+    
+    num_concepts = st.slider(
+        "Number of images:",
+        1, 5, 3,
+        help="How many different scenes to generate from the article"
+    )
+    
+    col_gen, col_regen = st.columns(2)
+    
+    with col_gen:
+        if st.button("✨ Generate Prompts", type="primary", width="stretch"):
+            st.session_state.current_images = []
+            
+            with st.spinner("🤖 AI is analyzing the article and creating visual prompts..."):
+                data = processor.process_article(selected_file, max_concepts=num_concepts)
                 
-                # Process button for individual article
-                if st.button(f"🔍 Preview Concepts", key=f"preview_{i}"):
-                    with st.spinner(f"Processing {article_name}..."):
-                        result = article_processor.process_article(article_path, max_concepts)
-                        
-                        if "error" in result:
-                            st.error(result["error"])
-                        else:
-                            st.write(f"**Extracted {result['num_concepts']} concept(s):**")
-                            for j, concept in enumerate(result["concepts"], 1):
-                                st.write(f"{j}. {concept}")
-                            
-                            # Generate prompts
-                            prompts = prompt_engineer.create_prompts_from_concepts(
-                                result["concepts"], style=style
-                            )
-                            
-                            st.write("\n**Generated Prompts:**")
-                            for j, prompt_data in enumerate(prompts, 1):
-                                st.code(prompt_data["enhanced_prompt"], language="text")
+                if "error" in data:
+                    st.error(f"❌ Error: {data['error']}")
+                    st.info("💡 Check your GROQ_API_KEY in the .env file")
+                else:
+                    st.session_state.prompts = data["concepts"]
+                    st.session_state.current_article = article_name
+                    st.success(f"✅ Generated {len(data['concepts'])} contextual prompts!")
+                    st.rerun()
+    
+    with col_regen:
+        if st.session_state.prompts:
+            if st.button("🔄 Regenerate", width="stretch", help="Generate different prompts if you don't like these"):
+                st.session_state.current_images = []
+                
+                with st.spinner("🤖 Generating new prompts..."):
+                    data = processor.process_article(selected_file, max_concepts=num_concepts)
+                    
+                    if "error" in data:
+                        st.error(f"❌ Error: {data['error']}")
+                    else:
+                        st.session_state.prompts = data["concepts"]
+                        st.success(f"✅ Regenerated {len(data['concepts'])} new prompts!")
+                        st.rerun()
+    
+    if st.session_state.prompts and st.session_state.current_article:
+        st.markdown("---")
+        st.subheader("📝 Step 3: Review AI Prompts")
+        st.caption(f"**Article:** {st.session_state.current_article}")
+        st.info("These prompts are generated from your article content. If you don't like them, click 'Regenerate' above.")
+        
+        for i, prompt in enumerate(st.session_state.prompts):
+            with st.expander(f"🎨 Scene {i+1}", expanded=True):
+                st.write(prompt)
         
         st.markdown("---")
+        st.subheader("🚀 Step 4: Generate Images")
+        st.caption(f"This will create {len(st.session_state.prompts)} photorealistic image(s)")
         
-        # Process all articles button
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            process_all = st.button("🚀 Generate Images from All Articles", type="primary")
-        
-        if process_all:
-            st.markdown("### 🎨 Generating Images...")
+        if st.button("🎨 Render All Images", type="primary", width="stretch"):
+            st.session_state.current_images = []
             
             progress_bar = st.progress(0)
             status_text = st.empty()
             
-            all_results = []
-            total_articles = len(articles)
-            
-            for idx, article_path in enumerate(articles):
-                article_name = os.path.basename(article_path).replace(".docx", "")
-                status_text.write(f"📄 Processing: **{article_name}** ({idx+1}/{total_articles})")
+            for idx, prompt in enumerate(st.session_state.prompts):
+                status_text.text(f"🎨 Rendering scene {idx+1}/{len(st.session_state.prompts)}... (30-60 seconds)")
                 
-                # Process article
-                article_data = article_processor.process_article(article_path, max_concepts)
+                enhanced_prompt = f"{prompt}, raw photo, 8k uhd, dslr, soft lighting, high quality, film grain, photorealistic, professional photography"
                 
-                if "error" not in article_data and article_data["concepts"]:
-                    # Generate prompts
-                    prompts = prompt_engineer.create_prompts_from_concepts(
-                        article_data["concepts"], style=style
+                try:
+                    imgs = generator.generate(
+                        enhanced_prompt,
+                        num_images=1,
+                        steps=steps,
+                        cfg_scale=cfg,
+                        height=height,
+                        width=width,
+                        seed=seed
                     )
                     
-                    # Generate images
-                    try:
-                        results = generator.generate_from_article_concepts(
-                            concepts=article_data["concepts"],
-                            prompts_data=prompts,
-                            article_name=article_name,
-                            steps=steps,
-                            cfg_scale=cfg_scale,
-                            height=height,
-                            width=width
-                        )
-                        
-                        all_results.append({
-                            "article": article_name,
-                            "results": results
-                        })
-                        
-                    except Exception as e:
-                        st.error(f"Error generating images for {article_name}: {e}")
-                
-                progress_bar.progress((idx + 1) / total_articles)
-            
-            status_text.write("✅ **All articles processed!**")
-            
-            # Display results
-            st.markdown("---")
-            st.header("📸 Generated Images")
-            
-            for article_result in all_results:
-                st.subheader(f"📄 {article_result['article']}")
-                
-                # Display images in columns
-                cols = st.columns(min(len(article_result['results']), 3))
-                
-                for i, result in enumerate(article_result['results']):
-                    col_idx = i % 3
-                    with cols[col_idx]:
-                        st.image(result["image_path"], use_container_width=True)
-                        st.caption(f"Concept: {result['concept'][:100]}...")
-                        
-                        # Download button
-                        with open(result["image_path"], "rb") as file:
-                            st.download_button(
-                                label="⬇️ Download",
-                                data=file,
-                                file_name=os.path.basename(result["image_path"]),
-                                mime="image/png",
-                                key=f"download_{article_result['article']}_{i}"
-                            )
-
-# Tab 2: Manual generation (original functionality)
-with tab2:
-    st.header("Manual Text-to-Image Generation")
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        prompt = st.text_area(
-            "Enter your prompt:",
-            height=100,
-            placeholder="A futuristic city at sunset, cyberpunk style, highly detailed, 8k..."
-        )
-        negative_prompt = st.text_input(
-            "Negative Prompt (Optional):",
-            value=prompt_engineer.get_negative_prompt(),
-            placeholder="blurry, low quality, distorted..."
-        )
-    
-    num_images = st.slider("Number of Images", min_value=1, max_value=4, value=1)
-    
-    generate_btn = st.button("🎨 Generate Images", type="primary")
-    
-    if generate_btn and prompt:
-        with st.spinner("🎨 Generating images... This may take a moment."):
-            try:
-                # Generate images
-                images = generator.generate(
-                    prompt=prompt,
-                    negative_prompt=negative_prompt,
-                    num_images=num_images,
-                    steps=steps,
-                    cfg_scale=cfg_scale,
-                    height=height,
-                    width=width
-                )
-                
-                # Display and save images
-                st.subheader("Generated Images")
-                
-                cols = st.columns(num_images)
-                
-                for idx, (col, img) in enumerate(zip(cols, images)):
-                    # Save locally
-                    params = {
-                        "steps": steps,
-                        "cfg_scale": cfg_scale,
-                        "height": height,
-                        "width": width,
-                        "style": style
-                    }
-                    img_path, meta_path = generator.save_image(img, prompt, params)
+                    path, meta_path = generator.save_image(
+                        imgs[0],
+                        prompt,
+                        {
+                            "source": st.session_state.current_article,
+                            "steps": steps,
+                            "cfg_scale": cfg,
+                            "height": height,
+                            "width": width
+                        },
+                        article_name=st.session_state.current_article.replace('.docx', '')
+                    )
                     
-                    with col:
-                        st.image(img, use_container_width=True)
-                        
-                        # Download button
-                        with open(img_path, "rb") as file:
-                            st.download_button(
-                                label=f"⬇️ Download {idx+1}",
-                                data=file,
-                                file_name=os.path.basename(img_path),
-                                mime="image/png",
-                                key=f"manual_download_{idx}"
-                            )
+                    st.session_state.current_images.append({
+                        "image": imgs[0],
+                        "path": path,
+                        "prompt": prompt,
+                        "article": st.session_state.current_article
+                    })
+                    
+                except Exception as e:
+                    st.error(f"❌ Error generating image {idx+1}: {e}")
                 
-                st.success(f"✅ Successfully generated {num_images} image(s)!")
-                
-            except Exception as e:
-                st.error(f"❌ An error occurred: {e}")
-    
-    elif generate_btn and not prompt:
-        st.warning("⚠️ Please enter a prompt to generate images.")
+                progress_bar.progress((idx + 1) / len(st.session_state.prompts))
+            
+            status_text.text("✅ All images generated!")
+            st.success(f"🎉 Successfully generated {len(st.session_state.prompts)} photorealistic images!")
+            st.balloons()
+            st.rerun()
 
-# Footer
-st.markdown("---")
-st.markdown("""
-<div style='text-align: center'>
-    <p><strong>AI-Powered Article Image Generator</strong></p>
-    <p>Built with PyTorch 2.9.1 + CUDA 13.0 | Stable Diffusion 2.1</p>
-    <p><em>Talrn Remote ML Internship Task Assessment</em></p>
-</div>
-""", unsafe_allow_html=True)
+with col_output:
+    st.subheader("🖼️ Generated Images")
+    
+    if not st.session_state.current_images:
+        st.info("""
+        📸 **Generated images will appear here**
+        
+        **Quick Start Guide:**
+        1. Select an article from the dropdown
+        2. Click "✨ Generate Prompts" to analyze the article
+        3. Review the AI-generated prompts (or regenerate if needed)
+        4. Click "🎨 Render All Images" to create photorealistic images
+        
+        **Note:** Each image takes 30-60 seconds to generate. The AI ensures all images are:
+        - ✅ Contextually accurate to the article
+        - ✅ Professional and workplace-appropriate
+        - ✅ Photorealistic quality
+        - ✅ High resolution (512x768)
+        """)
+    else:
+        st.success(f"**✅ Generated {len(st.session_state.current_images)} image(s)**")
+        st.caption(f"**From Article:** {st.session_state.current_article}")
+        
+        for idx, img_data in enumerate(st.session_state.current_images):
+            with st.container():
+                st.markdown(f"### 🖼️ Image {idx + 1}")
+                
+                col1, col2 = st.columns([1, 2])
+                
+                with col1:
+                    st.image(img_data["image"], width="stretch")
+                    
+                    with open(img_data["path"], "rb") as f:
+                        st.download_button(
+                            "⬇️ Download PNG",
+                            f,
+                            os.path.basename(img_data["path"]),
+                            "image/png",
+                            key=f"download_{idx}",
+                            width="stretch"
+                        )
+                
+                with col2:
+                    st.markdown("**📝 AI-Generated Prompt:**")
+                    st.info(img_data["prompt"])
+                    
+                    with st.expander("🔧 Technical Details"):
+                        st.caption(f"""
+                        **Enhanced Prompt:**  
+                        {img_data['prompt']}, raw photo, 8k uhd, dslr, soft lighting, high quality, film grain, photorealistic, professional photography
+                        
+                        **Model:** Realistic Vision V6.0  
+                        **Resolution:** {width}x{height}  
+                        **Quality:** Photorealistic
+                        """)
+                
+                st.divider()
+        
+        st.markdown("---")
+        st.info("💡 **Tip:** To generate images from a different article, select it from the dropdown and click 'Generate Prompts' again.")

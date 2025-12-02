@@ -1,0 +1,14 @@
+{
+    "prompt": "A solar-lit village in Africa at sunset, warm golden light, wide angle shot, centered composition, capturing the joy and pride of the community",
+    "timestamp": "20251203_020757",
+    "parameters": {
+        "source": "article1.docx",
+        "steps": 40,
+        "cfg_scale": 5.0,
+        "height": 768,
+        "width": 512
+    },
+    "image_path": "generated_images\\20251203_020757_article1.png",
+    "model_id": "SG161222/Realistic_Vision_V6.0_B1_noVAE",
+    "article_source": "article1"
+}

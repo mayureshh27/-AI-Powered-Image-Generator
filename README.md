@@ -1,255 +1,137 @@
-# 📰 Article-Based AI Image Generator
+# AI Article-to-Image Generator
 
-A production-grade, article-to-image generation system built with **PyTorch 2.9.1**, **CUDA 13.0**, and **Stable Diffusion 2.1**. This application reads articles from `.docx` files, understands their context, and generates high-resolution, photorealistic images based on the article content.
+**Talrn Internship Assignment** - Context-aware, photorealistic image generation from articles using AI.
 
-## 🚀 Features
+## Overview
 
-### Article Processing
-- **Automatic Article Reading**: Reads `.docx` files from the `Articles/` directory
-- **Intelligent Concept Extraction**: Analyzes article content to identify key visual concepts
-- **Context-Aware Processing**: Understands article themes and generates relevant prompts
+This application uses advanced AI models to analyze article content and generate professional-quality, photorealistic images that accurately represent the text. It combines:
+- **Groq Llama 3.3 (70B)** for intelligent article understanding
+- **Realistic Vision V6.0** for photorealistic image generation
+- **Streamlit** for an intuitive web interface
 
-### High-Quality Image Generation
-- **Stable Diffusion 2.1**: Advanced model for photorealistic, high-resolution images
-- **GPU Acceleration**: Optimized for NVIDIA RTX 4050 (6GB VRAM) with CUDA 13.0
-- **Multiple Styles**: Photorealistic, artistic, and cinematic styles
-- **Crisp & Clear Output**: 768x768 native resolution with upscaling support
-- **Memory Optimized**: Attention slicing, VAE slicing, and XFormers support
+## Features
 
-### Dual Generation Modes
-1. **Article-Based Mode**: Automatically process articles and generate contextual images
-2. **Manual Mode**: Traditional text-to-image generation with custom prompts
+✅ **Context-Aware**: AI reads and understands article content  
+✅ **Photorealistic**: Generates crisp, clear, high-resolution images  
+✅ **Safe Content**: Filters ensure professional, workplace-appropriate imagery  
+✅ **Customizable**: Adjustable quality settings (steps, CFG, resolution)  
+✅ **User-Friendly**: Simple 4-step workflow with regeneration options
 
-### User Interface
-- **Streamlit Web UI**: Clean, intuitive interface
-- **Batch Processing**: Generate images from multiple articles at once
-- **Real-time Preview**: View concepts and prompts before generation
-- **Download Support**: Save individual images or entire batches
+## Requirements
 
-## 🛠️ Technology Stack
+- Python 3.12+
+- NVIDIA GPU with 6GB+ VRAM (CUDA 13.0)
+- Groq API Key (free from console.groq.com)
 
-- **Language**: Python 3.11+
-- **Deep Learning**: PyTorch 2.9.1 with CUDA 13.0
-- **ML Framework**: Diffusers, Transformers, Accelerate
-- **Model**: Stable Diffusion 2.1 (stabilityai/stable-diffusion-2-1)
-- **UI**: Streamlit
-- **Document Processing**: python-docx, spaCy
-- **Environment**: UV package manager
+## Installation
 
-## 📋 Requirements
-
-### Hardware
-- **GPU**: NVIDIA RTX 4050 or better (6GB+ VRAM)
-- **RAM**: 16GB+ recommended
-- **Storage**: ~15GB free space for models and dependencies
-
-### Software
-- **OS**: Windows 10/11 (Linux/Mac compatible with minor script changes)
-- **Python**: 3.11 or higher
-- **CUDA**: 13.0 (installed with PyTorch)
-- **UV**: Package manager (will be installed)
-
-## ⚙️ Installation & Setup
-
-### Option 1: Automated Setup (Recommended)
-
-1. **Run the setup script**:
-   ```bash
-   setup.bat
-   ```
-   This will:
-   - Create a UV virtual environment
-   - Install PyTorch 2.9.1 with CUDA 13.0
-   - Install all dependencies
-
-2. **Verify installation**:
-   ```bash
-   TEST_SETUP.bat
-   ```
-   Watch the terminal output to confirm:
-   - ✓ PyTorch 2.9.1 installed
-   - ✓ CUDA 13.0 available
-   - ✓ GPU detected
-   - ✓ All modules loaded
-
-### Option 2: Manual Setup
-
-1. **Install UV** (if not already installed):
-   ```bash
-   pip install uv
-   ```
+1. **Clone or download this repository**
 
 2. **Create virtual environment**:
    ```bash
-   uv venv
+   python -m venv venv
+   source venv/Scripts/activate  # Windows
    ```
 
-3. **Activate environment**:
+3. **Install dependencies**:
    ```bash
-   .venv\Scripts\activate
+   pip install -r requirements.txt
    ```
 
-4. **Install PyTorch with CUDA 13.0**:
+4. **Set up environment variables**:
    ```bash
-   uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
+   cp .env.example .env
+   # Edit .env and add your GROQ_API_KEY
    ```
 
-5. **Install other dependencies**:
+5. **Get Groq API Key**:
+   - Visit: https://console.groq.com
+   - Sign up (free)
+   - Create API key
+   - Add to `.env` file
+
+## Usage
+
+1. **Start the application**:
    ```bash
-   uv pip install diffusers transformers accelerate streamlit python-docx spacy sentencepiece protobuf safetensors huggingface-hub
+   streamlit run app_article.py
    ```
 
-6. **Verify setup**:
-   ```bash
-   python test_setup.py
-   ```
+2. **Open in browser**: http://localhost:8501
 
-## 🏃‍♂️ Usage
+3. **Generate images**:
+   - Select an article from the dropdown
+   - Click "Generate Prompts" to analyze the article
+   - Review AI-generated prompts (or regenerate if needed)
+   - Click "Render All Images" to create photorealistic images
+   - Download individual images
 
-### Running the Application
-
-**Quick Start**:
-```bash
-RUN_APP.bat
-```
-
-**Manual Start**:
-```bash
-.venv\Scripts\activate
-streamlit run app_article.py
-```
-
-The app will open in your browser at `http://localhost:8501`
-
-### Article-Based Generation
-
-1. **Place your articles** in the `Articles/` directory (`.docx` format)
-2. **Open the app** and go to the "📂 Process Articles" tab
-3. **Preview concepts** by clicking "🔍 Preview Concepts" for any article
-4. **Generate images** by clicking "🚀 Generate Images from All Articles"
-5. **Download** individual images or view them in the gallery
-
-### Manual Generation
-
-1. Go to the "🎨 Manual Generation" tab
-2. Enter your custom prompt
-3. Adjust settings in the sidebar (steps, CFG scale, resolution, style)
-4. Click "🎨 Generate Images"
-5. Download your generated images
-
-## 📁 Project Structure
+## Project Structure
 
 ```
-d:\Talrn assignment\
+├── Articles/                 # Input articles (.docx files)
 ├── config/
-│   ├── __init__.py
-│   └── settings.py              # Configuration settings
+│   └── settings.py          # Model and generation configuration
 ├── src/
-│   ├── __init__.py
 │   ├── models/
-│   │   ├── __init__.py
-│   │   └── image_generator.py   # Enhanced SD 2.1 generator
+│   │   └── image_generator.py  # Image generation logic
 │   └── utils/
-│       ├── __init__.py
-│       ├── article_processor.py # Article reading & concept extraction
-│       └── prompt_engineer.py   # Prompt optimization
-├── Articles/                     # Place your .docx articles here
-│   ├── article1.docx
-│   ├── article2.docx
-│   └── article3.docx
-├── generated_images/            # Output directory for generated images
-├── app_article.py               # Main Streamlit application
-├── test_setup.py                # Environment verification script
-├── pyproject.toml               # UV project configuration
-├── requirements.txt             # Python dependencies
-├── setup.bat                    # Automated setup script
-├── RUN_APP.bat                  # Quick start script
-├── TEST_SETUP.bat               # Test verification script
-└── README.md                    # This file
+│       ├── article_processor.py  # Article analysis with Groq LLM
+│       └── prompt_engineer.py    # Prompt enhancement utilities
+├── generated_images/        # Output directory
+├── .env                     # Environment variables (not committed)
+├── .env.example            # Environment template
+├── app_article.py          # Main Streamlit application
+├── requirements.txt        # Python dependencies
+└── README.md              # This file
 ```
 
-## 🎨 Generation Tips
+## Configuration
 
-### For Best Quality
-- Use **50-75 inference steps** for high quality
-- Set **CFG scale to 7-9** for balanced results
-- Use **768x768 resolution** (SD 2.1 native)
-- Enable **photorealistic style** for realistic images
+### Generation Settings (Sidebar)
+- **Inference Steps**: 30-60 (default: 40)
+- **Guidance Scale**: 4.0-9.0 (default: 5.0)
+- **Resolution**: 512x768 (recommended for portrait)
 
-### Prompt Engineering
-The system automatically enhances prompts with:
-- Quality keywords: "highly detailed", "8k", "photorealistic"
-- Lighting modifiers: "cinematic lighting", "natural lighting"
-- Camera angles: "wide shot", "close-up", etc.
+### Model Configuration (`config/settings.py`)
+- Model: Realistic Vision V6.0
+- Default CFG: 5.0 (optimized for realism)
+- Default Steps: 40
+- Resolution: 512x768 portrait
 
-### Memory Management
-For 6GB VRAM:
-- Stick to 768x768 or lower resolution
-- Generate 1-2 images at a time
-- The system automatically enables memory optimizations
+## Safety Features
 
-## 🔧 Configuration
+- **Content Filtering**: LLM instructions ensure professional, workplace-appropriate prompts
+- **Negative Prompts**: Automatically filters NSFW/inappropriate content
+- **Context-Only**: Images generated strictly from article content
 
-Edit `config/settings.py` to customize:
-- **Model selection**: Change to SDXL or other models
-- **Default parameters**: Steps, CFG, resolution
-- **Article processing**: Number of concepts per article
-- **Output paths**: Where images are saved
+## Technical Specifications
 
-## 📊 Example Workflow
+- **Image Model**: SG161222/Realistic_Vision_V6.0_B1_noVAE
+- **LLM**: Groq Llama 3.3-70B-Versatile
+- **Framework**: PyTorch 2.9.1 + CUDA 13.0
+- **UI**: Streamlit 1.42.0
+- **GPU**: Optimized for 6GB VRAM
 
-1. **Add articles** to `Articles/` directory
-2. **Run** `RUN_APP.bat`
-3. **Navigate** to "Process Articles" tab
-4. **Preview** extracted concepts
-5. **Generate** images from all articles
-6. **Review** generated images in gallery
-7. **Download** desired images
+## Troubleshooting
 
-## ⚠️ Troubleshooting
+### "GROQ_API_KEY not found"
+- Ensure `.env` file exists with valid API key
+- Format: `GROQ_API_KEY=gsk_your_key_here`
 
-### CUDA Not Available
-- Ensure NVIDIA drivers are up to date
-- Verify CUDA toolkit installation
-- Check GPU compatibility
+### Out of memory
+- Lower resolution to 512x512
+- Reduce batch size to 1 image at a time
+- Close other GPU applications
 
-### Out of Memory Errors
-- Reduce resolution (512x512)
-- Lower number of inference steps
-- Generate fewer images at once
+### Slow generation
+- Expected: 30-60 seconds per image on RTX 4050
+- Verify GPU is being used (check terminal output)
 
-### Model Download Issues
-- First run downloads ~5GB model (SD 2.1)
-- Ensure stable internet connection
-- Models cached in `.cache/` directory
+## License
 
-## 🤝 Ethical Use
+This project was created for the Talrn internship assignment.
 
-- Generate responsible, appropriate content
-- Respect copyright and intellectual property
-- Use for educational and creative purposes
-- Generated images may contain AI watermarks
+## Contact
 
-## 📝 Technical Details
-
-### Optimizations Implemented
-- ✅ Attention slicing for memory efficiency
-- ✅ VAE slicing for large images
-- ✅ XFormers memory-efficient attention
-- ✅ DPM++ scheduler for better quality
-- ✅ Float16 precision on GPU
-- ✅ Model caching for faster subsequent runs
-
-### Article Processing Pipeline
-1. Read `.docx` files using python-docx
-2. Clean and normalize text
-3. Extract key sentences using scoring algorithm
-4. Generate visual concepts from sentences
-5. Enhance concepts with quality keywords
-6. Create optimized prompts for SD 2.1
-
----
-
-**Built for Talrn Remote ML Internship Task Assessment**
-
-*Developed with PyTorch 2.9.1 + CUDA 13.0 | Stable Diffusion 2.1*
+For questions or issues, please contact the development team.
