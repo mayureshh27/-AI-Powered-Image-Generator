@@ -1,0 +1,14 @@
+{
+    "prompt": "A group of young climate strikers holding a banner that reads \"There's No Planet B\", golden hour lighting, aerial view, rule of thirds composition, conveying the sense of urgency and hope in the face of climate change",
+    "timestamp": "20251203_021940",
+    "parameters": {
+        "source": "article2.docx",
+        "steps": 50,
+        "cfg_scale": 10.0,
+        "height": 512,
+        "width": 768
+    },
+    "image_path": "generated_images\\20251203_021940_article2.png",
+    "model_id": "SG161222/Realistic_Vision_V6.0_B1_noVAE",
+    "article_source": "article2"
+}

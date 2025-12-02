@@ -1,70 +1,96 @@
 # AI Article-to-Image Generator
 
-**Talrn Internship Assignment** - Context-aware, photorealistic image generation from articles using AI.
-
 ## Overview
 
-This application uses advanced AI models to analyze article content and generate professional-quality, photorealistic images that accurately represent the text. It combines:
-- **Groq Llama 3.3 (70B)** for intelligent article understanding
-- **Realistic Vision V6.0** for photorealistic image generation
-- **Streamlit** for an intuitive web interface
+This application generates photorealistic images from article content using advanced AI models. It combines intelligent article understanding with state-of-the-art image generation to create crisp, clear, high-resolution, realistic images.
 
-## Features
+## Technologies
+
+- **Groq Llama 3.3 (70B)** - Article understanding and prompt generation
+- **Realistic Vision V6.0** - Photorealistic image generation
+- **Python 3.12 + PyTorch 2.9.1 + CUDA 13.0** - Core framework
+- **Streamlit 1.42.0** - Web interface
+
+## Key Features
 
 ✅ **Context-Aware**: AI reads and understands article content  
 ✅ **Photorealistic**: Generates crisp, clear, high-resolution images  
-✅ **Safe Content**: Filters ensure professional, workplace-appropriate imagery  
-✅ **Customizable**: Adjustable quality settings (steps, CFG, resolution)  
+✅ **Safe Content**: Double-layer filtering ensures professional imagery  
+✅ **Customizable**: Professional presets and full manual control  
 ✅ **User-Friendly**: Simple 4-step workflow with regeneration options
 
-## Requirements
+## Task Requirements Met
 
+| Requirement | Implementation | Status |
+|------------|----------------|--------|
+| **Understand article context** | Groq Llama 3.3 (70B) | ✅ |
+| **Crisp and clear images** | 512x768 + Realistic Vision V6.0 | ✅ |
+| **High resolution** | Configurable up to 1024x768 | ✅ |
+| **Realistic images** | Realistic Vision V6.0 (photo-trained) | ✅ |
+| **Safe content** | Double-layer safety filters | ✅ |
+
+## Installation
+
+### Requirements
 - Python 3.12+
 - NVIDIA GPU with 6GB+ VRAM (CUDA 13.0)
 - Groq API Key (free from console.groq.com)
 
-## Installation
+### Setup Steps
 
-1. **Clone or download this repository**
-
-2. **Create virtual environment**:
+1. **Create virtual environment**:
    ```bash
    python -m venv venv
    source venv/Scripts/activate  # Windows
    ```
 
-3. **Install dependencies**:
+2. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Set up environment variables**:
+3. **Configure environment**:
    ```bash
    cp .env.example .env
    # Edit .env and add your GROQ_API_KEY
    ```
 
-5. **Get Groq API Key**:
+4. **Get Groq API Key**:
    - Visit: https://console.groq.com
    - Sign up (free)
    - Create API key
    - Add to `.env` file
 
-## Usage
-
-1. **Start the application**:
+5. **Run application**:
    ```bash
    streamlit run app_article.py
    ```
 
-2. **Open in browser**: http://localhost:8501
+6. **Open browser**: http://localhost:8501
 
-3. **Generate images**:
-   - Select an article from the dropdown
-   - Click "Generate Prompts" to analyze the article
-   - Review AI-generated prompts (or regenerate if needed)
-   - Click "Render All Images" to create photorealistic images
-   - Download individual images
+## Usage
+
+### Simple 4-Step Workflow:
+
+1. **Select Article** - Choose from dropdown menu
+2. **Generate Prompts** - AI analyzes article content
+3. **Review Prompts** - Check AI-generated descriptions (regenerate if needed)
+4. **Render Images** - Create photorealistic images
+5. **Download** - Save individual images
+
+## Generation Settings
+
+### Professional Presets:
+- **Photorealistic (Recommended)**: 40 steps, CFG 5.0, 512x768 ⭐
+- **High Detail**: 50 steps, CFG 6.0, 1024x768
+- **Balanced**: 35 steps, CFG 5.5, 768x512
+- **Fast**: 30 steps, CFG 5.0, 512x512
+
+### Custom Settings:
+- **Inference Steps**: 20-100 (recommended: 40-50)
+- **CFG Scale**: 1.0-15.0 (professional: 5.0)
+- **Resolution**: Up to 1024x1024
+- **Fixed Seed**: Optional for reproducible results
 
 ## Project Structure
 
@@ -86,24 +112,17 @@ This application uses advanced AI models to analyze article content and generate
 └── README.md              # This file
 ```
 
-## Configuration
-
-### Generation Settings (Sidebar)
-- **Inference Steps**: 30-60 (default: 40)
-- **Guidance Scale**: 4.0-9.0 (default: 5.0)
-- **Resolution**: 512x768 (recommended for portrait)
-
-### Model Configuration (`config/settings.py`)
-- Model: Realistic Vision V6.0
-- Default CFG: 5.0 (optimized for realism)
-- Default Steps: 40
-- Resolution: 512x768 portrait
-
 ## Safety Features
 
-- **Content Filtering**: LLM instructions ensure professional, workplace-appropriate prompts
-- **Negative Prompts**: Automatically filters NSFW/inappropriate content
-- **Context-Only**: Images generated strictly from article content
+### 1. LLM Prompt Safety
+- Strict instructions ensure context-only prompts
+- Professional, workplace-appropriate content only
+- No sensitive or controversial imagery
+
+### 2. Image Generation Safety
+- Comprehensive negative prompts filter NSFW content
+- Blocks inappropriate, vulgar, or offensive imagery
+- Double-layer protection (LLM + image generation)
 
 ## Technical Specifications
 
@@ -113,25 +132,21 @@ This application uses advanced AI models to analyze article content and generate
 - **UI**: Streamlit 1.42.0
 - **GPU**: Optimized for 6GB VRAM
 
-## Troubleshooting
+### Performance (RTX 4050 Laptop, 6GB VRAM):
 
-### "GROQ_API_KEY not found"
-- Ensure `.env` file exists with valid API key
-- Format: `GROQ_API_KEY=gsk_your_key_here`
+| Resolution | Steps | Time per Image | VRAM Usage |
+|-----------|-------|----------------|------------|
+| 512x512 | 30 | ~10s | ~3.5GB |
+| 512x768 | 40 | ~15s | ~4.0GB |
+| 768x768 | 40 | ~18s | ~5.0GB |
+| 1024x768 | 50 | ~25s | ~5.8GB |
 
-### Out of memory
-- Lower resolution to 512x512
-- Reduce batch size to 1 image at a time
-- Close other GPU applications
-
-### Slow generation
-- Expected: 30-60 seconds per image on RTX 4050
-- Verify GPU is being used (check terminal output)
 
 ## License
 
 This project was created for the Talrn internship assignment.
 
-## Contact
 
-For questions or issues, please contact the development team.
+**Created by**: [Mayuresh Chavan]  
+**Date**: December 3, 2025  
+

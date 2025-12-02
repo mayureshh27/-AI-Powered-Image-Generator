@@ -1,0 +1,14 @@
+{
+    "prompt": "A close-up of a smartphone screen displaying a social media post from a youth activist, soft studio lighting, shallow depth of field, highlighting the role of digital tools in mobilizing global protests",
+    "timestamp": "20251203_021924",
+    "parameters": {
+        "source": "article2.docx",
+        "steps": 50,
+        "cfg_scale": 10.0,
+        "height": 512,
+        "width": 768
+    },
+    "image_path": "generated_images\\20251203_021924_article2.png",
+    "model_id": "SG161222/Realistic_Vision_V6.0_B1_noVAE",
+    "article_source": "article2"
+}
